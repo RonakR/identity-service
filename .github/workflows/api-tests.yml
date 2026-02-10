@@ -23,7 +23,7 @@ jobs:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
 
       - name: Lint OpenAPI Spec
-        run: postman spec lint postman/specs/identity-service-api.yaml
+        run: postman spec lint postman/specs/identity-service-api.yaml --report-events
 
   run-collection-tests:
     name: Run Postman Collection Tests
