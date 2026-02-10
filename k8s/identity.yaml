@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-api
+  namespace: identity
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: identity-api }
+  template:
+    metadata:
+      labels: { app: identity-api }
+    spec:
+      containers:
+        - name: identity-api
+          image: identity-api:dev
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: "3001"
+            # Insights (set by accounts orchestrator via env + simple templating)
+            - name: POSTMAN_INSIGHTS_PROJECT_ID
+              value: "__IDENTITY_PROJECT_ID__"
+            - name: POSTMAN_INSIGHTS_API_KEY
+              value: "__POSTMAN_API_KEY__"
+          ports:
+            - containerPort: 3001
+          readinessProbe:
+            httpGet: { path: /health, port: 3001 }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 3001 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-api
+  namespace: identity
+spec:
+  selector: { app: identity-api }
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
