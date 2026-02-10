@@ -1,0 +1,74 @@
+name: API Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-openapi:
+    name: Lint OpenAPI Spec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Postman CLI
+        run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Authenticate Postman CLI
+        run: postman login --with-api-key $POSTMAN_API_KEY
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Lint OpenAPI Spec
+        run: postman spec lint postman/specs/identity-service-api.yaml
+
+  run-collection-tests:
+    name: Run Postman Collection Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Postman CLI
+        run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Authenticate Postman CLI
+        run: postman login --with-api-key $POSTMAN_API_KEY
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Start API server
+        run: |
+          node src/index.js &
+          echo "Waiting for server to start..."
+          sleep 5
+
+      - name: Wait for server to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:3001/health > /dev/null 2>&1; then
+              echo "Server is ready!"
+              exit 0
+            fi
+            echo "Waiting for server... attempt $i"
+            sleep 2
+          done
+          echo "Server failed to start"
+          exit 1
+
+      - name: Run Postman Collection Tests
+        run: |
+          postman collection run postman/collections/identity-service.postman_collection.json \
+            --env-var "baseUrl=http://localhost:3001"

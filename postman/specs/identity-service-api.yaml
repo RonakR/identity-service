@@ -1,0 +1,241 @@
+openapi: 3.0.3
+info:
+  title: Identity Service API
+  description: API for managing user identities and authentication
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+
+paths:
+  /users:
+    post:
+      summary: Create User
+      description: Create a new user in the identity service
+      operationId: createUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+            example:
+              name: John Doe
+              email: john@example.com
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                user:
+                  id: u1
+                  name: John Doe
+                  email: john@example.com
+        '200':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExistingUserResponse'
+              example:
+                user:
+                  id: u1
+                  name: John Doe
+                  email: john@example.com
+                existing: true
+        '400':
+          description: Bad request - missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: name and email are required
+
+    get:
+      summary: List All Users
+      description: Retrieve a list of all users in the system
+      operationId: listUsers
+      tags:
+        - Users
+      responses:
+        '200':
+          description: List of users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersListResponse'
+              example:
+                users:
+                  - id: u1
+                    name: John Doe
+                    email: john@example.com
+
+  /users/{id}:
+    get:
+      summary: Get User by ID
+      description: Retrieve a specific user by their unique identifier
+      operationId: getUserById
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the user
+          schema:
+            type: string
+          example: u1
+      responses:
+        '200':
+          description: User found successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                user:
+                  id: u1
+                  name: John Doe
+                  email: john@example.com
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: user not found
+
+  /health:
+    get:
+      summary: Health Check
+      description: Check the health status of the identity service
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                service: identity-api
+
+components:
+  schemas:
+    User:
+      type: object
+      description: Represents a user in the system
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the user
+          example: u1
+        name:
+          type: string
+          description: Full name of the user
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: Email address of the user
+          example: john@example.com
+      required:
+        - id
+        - name
+        - email
+
+    CreateUserRequest:
+      type: object
+      description: Request body for creating a new user
+      properties:
+        name:
+          type: string
+          description: Full name of the user
+          example: John Doe
+        email:
+          type: string
+          format: email
+          description: Email address of the user
+          example: john@example.com
+      required:
+        - name
+        - email
+
+    UserResponse:
+      type: object
+      description: Response containing a single user
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+        - user
+
+    ExistingUserResponse:
+      type: object
+      description: Response when user already exists
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        existing:
+          type: boolean
+          description: Indicates the user already existed
+          example: true
+      required:
+        - user
+        - existing
+
+    UsersListResponse:
+      type: object
+      description: Response containing a list of users
+      properties:
+        users:
+          type: array
+          description: Array of user objects
+          items:
+            $ref: '#/components/schemas/User'
+      required:
+        - users
+
+    Error:
+      type: object
+      description: Error response
+      properties:
+        error:
+          type: string
+          description: Error message describing what went wrong
+          example: user not found
+      required:
+        - error
+
+    HealthResponse:
+      type: object
+      description: Health check response
+      properties:
+        status:
+          type: string
+          description: Current status of the service
+          example: ok
+        service:
+          type: string
+          description: Name of the service
+          example: identity-api
+      required:
+        - status
+        - service
+
+tags:
+  - name: Users
+    description: User management operations
+  - name: Health
+    description: Service health monitoring
