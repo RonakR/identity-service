@@ -1,0 +1,24 @@
+name: Publish to Postman Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-to-postman:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Postman CLI
+        run: curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
+      - name: Authenticate with Postman
+        run: postman login --with-api-key "$POSTMAN_API_KEY"
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+      - name: Push workspace to Postman Cloud
+        run: postman workspace push --yes
