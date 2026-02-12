@@ -55,7 +55,7 @@
                 "users"
               ]
             },
-            "description": "Creates a new user with the provided name and email.\n\nIf a user with the same email already exists, returns the existing user with a 200 status and an `existing: true` flag.\n\n**Request Body:**\n- `name` (string, required): The user's name\n- `email` (string, required): The user's email address\n\n**Responses:**\n- 201: User created successfully\n- 200: User already exists with this email\n- 400: Missing required fields (name or email)"
+            "description": "Creates a new user with the provided name and email.\n\nIf a user with the same email already exists, returns the existing user with a 200 status and an `existing: true` flag.\n\n**Request Body:**\n- `name` (string, required): The user's name\n- `email` (string, required): The user's email address\n\n**Responses:**\n- 201: `{ user: { id, name, email } }` user created successfully\n- 200: `{ user: { id, name, email }, existing: true }` user already exists with this email\n- 400: `{ error: \"name and email are required\" }` missing required fields"
           },
           "response": [],
           "event": [
@@ -64,9 +64,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "// Test: Status code is 201",
-                  "pm.test(\"Status code is 201\", function() {",
-                  "    pm.response.to.have.status(201);",
+                  "// Test: Status code is 201 or 200 (existing user)",
+                  "pm.test(\"Status code is 201 or 200\", function() {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});",
                   "",
                   "// Test: Response time is less than 500ms",
@@ -82,11 +82,12 @@
                   "// Parse response body",
                   "var jsonData = pm.response.json();",
                   "",
-                  "// Test: Response contains id, name, email fields",
-                  "pm.test(\"Response contains id, name, email fields\", function() {",
-                  "    pm.expect(jsonData).to.have.property('id');",
-                  "    pm.expect(jsonData).to.have.property('name');",
-                  "    pm.expect(jsonData).to.have.property('email');",
+                  "// Test: Response contains user with id, name, email fields",
+                  "pm.test(\"Response contains user with id, name, email fields\", function() {",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "    pm.expect(jsonData.user).to.have.property('id');",
+                  "    pm.expect(jsonData.user).to.have.property('name');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
                   "});",
                   "",
                   "// Parse request body to compare",
@@ -94,18 +95,18 @@
                   "",
                   "// Test: Email matches the request email",
                   "pm.test(\"Email matches the request email\", function() {",
-                  "    pm.expect(jsonData.email).to.equal(requestBody.email);",
+                  "    pm.expect(jsonData.user.email).to.equal(requestBody.email);",
                   "});",
                   "",
                   "// Test: Name matches the request name",
                   "pm.test(\"Name matches the request name\", function() {",
-                  "    pm.expect(jsonData.name).to.equal(requestBody.name);",
+                  "    pm.expect(jsonData.user.name).to.equal(requestBody.name);",
                   "});",
                   "",
                   "// Set user ID to collection variable for use in other requests",
-                  "if (jsonData.id) {",
-                  "    pm.collectionVariables.set(\"userId\", jsonData.id);",
-                  "    console.log(\"User ID saved to collection variable: \" + jsonData.id);",
+                  "if (jsonData.user && jsonData.user.id) {",
+                  "    pm.collectionVariables.set(\"userId\", jsonData.user.id);",
+                  "    console.log(\"User ID saved to collection variable: \" + jsonData.user.id);",
                   "}"
                 ]
               }
@@ -127,7 +128,7 @@
                 "users"
               ]
             },
-            "description": "Retrieves a list of all users in the system.\n\n**Responses:**\n- 200: Returns an array of all users"
+            "description": "Retrieves a list of all users in the system.\n\n**Responses:**\n- 200: `{ users: [{ id, name, email }] }`"
           },
           "response": [],
           "event": [
@@ -149,20 +150,21 @@
                   "// Parse response body",
                   "var jsonData = pm.response.json();",
                   "",
-                  "// Test: Response is an array",
-                  "pm.test(\"Response is an array\", function() {",
-                  "    pm.expect(jsonData).to.be.an('array');",
+                  "// Test: Response contains users array",
+                  "pm.test(\"Response contains users array\", function() {",
+                  "    pm.expect(jsonData).to.have.property('users');",
+                  "    pm.expect(jsonData.users).to.be.an('array');",
                   "});",
                   "",
                   "// Test: Array is not empty (if users exist)",
-                  "if (jsonData.length > 0) {",
+                  "if (jsonData.users.length > 0) {",
                   "    pm.test(\"Array is not empty\", function() {",
-                  "        pm.expect(jsonData.length).to.be.above(0);",
+                  "        pm.expect(jsonData.users.length).to.be.above(0);",
                   "    });",
                   "    ",
                   "    // Test: Each user has id, name, email properties",
                   "    pm.test(\"Each user has id, name, email properties\", function() {",
-                  "        jsonData.forEach(function(user) {",
+                  "        jsonData.users.forEach(function(user) {",
                   "            pm.expect(user).to.have.property('id');",
                   "            pm.expect(user).to.have.property('name');",
                   "            pm.expect(user).to.have.property('email');",
@@ -197,7 +199,7 @@
                 }
               ]
             },
-            "description": "Retrieves a specific user by their ID.\n\n**Path Parameters:**\n- `id` (string, required): The user's unique identifier\n\n**Responses:**\n- 200: User found and returned\n- 404: User not found"
+            "description": "Retrieves a specific user by their ID.\n\n**Path Parameters:**\n- `id` (string, required): The user's unique identifier\n\n**Responses:**\n- 200: `{ user: { id, name, email } }` user found and returned\n- 404: `{ error: \"user not found\" }`"
           },
           "response": [],
           "event": [
@@ -224,17 +226,18 @@
                   "// Parse response body",
                   "var jsonData = pm.response.json();",
                   "",
-                  "// Test: Response contains id, name, email fields",
-                  "pm.test(\"Response contains id, name, email fields\", function() {",
-                  "    pm.expect(jsonData).to.have.property('id');",
-                  "    pm.expect(jsonData).to.have.property('name');",
-                  "    pm.expect(jsonData).to.have.property('email');",
+                  "// Test: Response contains user with id, name, email fields",
+                  "pm.test(\"Response contains user with id, name, email fields\", function() {",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "    pm.expect(jsonData.user).to.have.property('id');",
+                  "    pm.expect(jsonData.user).to.have.property('name');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
                   "});",
                   "",
                   "// Test: ID matches the requested ID",
                   "pm.test(\"ID matches the requested ID\", function() {",
                   "    var requestedId = pm.request.url.variables.get('id');",
-                  "    pm.expect(jsonData.id).to.equal(requestedId);",
+                  "    pm.expect(jsonData.user.id).to.equal(requestedId);",
                   "});"
                 ]
               }
@@ -263,7 +266,7 @@
                 "health"
               ]
             },
-            "description": "Returns the health status of the Identity Service.\n\n**Responses:**\n- 200: Service is healthy and operational"
+            "description": "Returns the health status of the Identity Service.\n\n**Responses:**\n- 200: `{ status: \"ok\", service: \"identity-api\" }`"
           },
           "response": [],
           "event": [
@@ -290,9 +293,9 @@
                   "    pm.expect(jsonData).to.have.property('status');",
                   "});",
                   "",
-                  "// Test: Status is 'healthy'",
-                  "pm.test(\"Status is 'healthy'\", function() {",
-                  "    pm.expect(jsonData.status).to.equal('healthy');",
+                  "// Test: Status is 'ok'",
+                  "pm.test(\"Status is 'ok'\", function() {",
+                  "    pm.expect(jsonData.status).to.equal('ok');",
                   "});"
                 ]
               }
