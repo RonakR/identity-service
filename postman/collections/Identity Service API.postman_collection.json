@@ -1,0 +1,313 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Identity Service API",
+    "description": "API collection for the Identity Service - a demo service for managing user identities.\n\nThis service provides endpoints for:\n- Creating and retrieving users\n- Health check monitoring\n\nBase URL: The service runs on port 3001 by default.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Collection-level pre-request script",
+          "console.log('========================================');",
+          "console.log('Request: ' + pm.info.requestName);",
+          "console.log('Method: ' + pm.request.method);",
+          "console.log('URL: ' + pm.request.url.toString());",
+          "console.log('========================================');"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "id": "4a14523f-35c4-43be-8a8a-8068be0fcc91",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Creates a new user with the provided name and email.\n\nIf a user with the same email already exists, returns the existing user with a 200 status and an `existing: true` flag.\n\n**Request Body:**\n- `name` (string, required): The user's name\n- `email` (string, required): The user's email address\n\n**Responses:**\n- 201: `{ user: { id, name, email } }` user created successfully\n- 200: `{ user: { id, name, email }, existing: true }` user already exists with this email\n- 400: `{ error: \"name and email are required\" }` missing required fields"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Test: Status code is 201 or 200 (existing user)",
+                  "pm.test(\"Status code is 201 or 200\", function() {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "// Test: Response time is less than 500ms",
+                  "pm.test(\"Response time is less than 500ms\", function() {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "// Test: Response has JSON body",
+                  "pm.test(\"Response has JSON body\", function() {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "// Parse response body",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "// Test: Response contains user with id, name, email fields",
+                  "pm.test(\"Response contains user with id, name, email fields\", function() {",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "    pm.expect(jsonData.user).to.have.property('id');",
+                  "    pm.expect(jsonData.user).to.have.property('name');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
+                  "});",
+                  "",
+                  "// Parse request body to compare",
+                  "var requestBody = JSON.parse(pm.request.body.raw);",
+                  "",
+                  "// Test: Email matches the request email",
+                  "pm.test(\"Email matches the request email\", function() {",
+                  "    pm.expect(jsonData.user.email).to.equal(requestBody.email);",
+                  "});",
+                  "",
+                  "// Test: Name matches the request name",
+                  "pm.test(\"Name matches the request name\", function() {",
+                  "    pm.expect(jsonData.user.name).to.equal(requestBody.name);",
+                  "});",
+                  "",
+                  "// Set user ID to collection variable for use in other requests",
+                  "if (jsonData.user && jsonData.user.id) {",
+                  "    pm.collectionVariables.set(\"userId\", jsonData.user.id);",
+                  "    console.log(\"User ID saved to collection variable: \" + jsonData.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Users",
+          "id": "edc2b372-7032-4361-9867-9787b280828a",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "Retrieves a list of all users in the system.\n\n**Responses:**\n- 200: `{ users: [{ id, name, email }] }`"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Test: Status code is 200",
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Test: Response time is less than 500ms",
+                  "pm.test(\"Response time is less than 500ms\", function() {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "// Parse response body",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "// Test: Response contains users array",
+                  "pm.test(\"Response contains users array\", function() {",
+                  "    pm.expect(jsonData).to.have.property('users');",
+                  "    pm.expect(jsonData.users).to.be.an('array');",
+                  "});",
+                  "",
+                  "// Test: Array is not empty (if users exist)",
+                  "if (jsonData.users.length > 0) {",
+                  "    pm.test(\"Array is not empty\", function() {",
+                  "        pm.expect(jsonData.users.length).to.be.above(0);",
+                  "    });",
+                  "    ",
+                  "    // Test: Each user has id, name, email properties",
+                  "    pm.test(\"Each user has id, name, email properties\", function() {",
+                  "        jsonData.users.forEach(function(user) {",
+                  "            pm.expect(user).to.have.property('id');",
+                  "            pm.expect(user).to.have.property('name');",
+                  "            pm.expect(user).to.have.property('email');",
+                  "        });",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User by ID",
+          "id": "7a81f142-f4e0-4727-b271-75ae808c6a08",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "u1",
+                  "description": "User ID (e.g., u1, u2, u3)"
+                }
+              ]
+            },
+            "description": "Retrieves a specific user by their ID.\n\n**Path Parameters:**\n- `id` (string, required): The user's unique identifier\n\n**Responses:**\n- 200: `{ user: { id, name, email } }` user found and returned\n- 404: `{ error: \"user not found\" }`"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Test: Status code is 200",
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Test: Response time is less than 500ms",
+                  "pm.test(\"Response time is less than 500ms\", function() {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "// Test: Response has JSON body",
+                  "pm.test(\"Response has JSON body\", function() {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "// Parse response body",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "// Test: Response contains user with id, name, email fields",
+                  "pm.test(\"Response contains user with id, name, email fields\", function() {",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "    pm.expect(jsonData.user).to.have.property('id');",
+                  "    pm.expect(jsonData.user).to.have.property('name');",
+                  "    pm.expect(jsonData.user).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "id": "205faa1d-515f-4f59-bdb0-63d431b75681",
+      "description": "Endpoints for managing user identities"
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "id": "7b897134-583a-495b-be2b-d318bd5b4663",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Returns the health status of the Identity Service.\n\n**Responses:**\n- 200: `{ status: \"ok\", service: \"identity-api\" }`"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Test: Status code is 200",
+                  "pm.test(\"Status code is 200\", function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Test: Response time is less than 500ms",
+                  "pm.test(\"Response time is less than 500ms\", function() {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "// Parse response body",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "// Test: Response has status property",
+                  "pm.test(\"Response has status property\", function() {",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "});",
+                  "",
+                  "// Test: Status is 'ok'",
+                  "pm.test(\"Status is 'ok'\", function() {",
+                  "    pm.expect(jsonData.status).to.equal('ok');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "id": "a6e909b3-2ad1-4ddf-9592-91faca7cdf46",
+      "description": "Service health check endpoints"
+    }
+  ],
+  "variable": [
+    {
+      "id": "15a1a848-211a-44c1-a81e-cd3d7f2571ef",
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "default",
+      "description": "Base URL for the Identity Service API"
+    }
+  ]
+}
